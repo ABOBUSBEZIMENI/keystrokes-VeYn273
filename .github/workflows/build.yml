@@ -20,13 +20,11 @@ jobs:
           distribution: temurin
           java-version: 25
 
-      # Gradle ставится сам, файл gradlew в репозитории не нужен
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.2.0
-
-      # Ищем папку проекта (где лежит settings.gradle), даже если она вложенная
+ 
       - name: Find project folder
         run: |
           f=$(find . -name settings.gradle -not -path './.git/*' | head -1)
@@ -46,8 +44,6 @@ jobs:
         with:
           name: Keystrokes-jar
           path: ${{ env.PROJECT_DIR }}/build/libs/Keystrokes.jar
-
-      # Релиз с готовым jar: его удобно скачать с телефона (вкладка Releases)
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
