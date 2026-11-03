@@ -14,28 +14,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 21
+      - name: Set up Java 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 25
 
-      - name: Build Keystrokes.jar
+      # Gradle ставится сам, файл gradlew в репозитории не нужен
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.2.0
+
+      # Ищем папку проекта (где лежит settings.gradle), даже если она вложенная
+      - name: Find project folder
         run: |
-          chmod +x gradlew
-          ./gradlew build --no-daemon
+          f=$(find . -name settings.gradle -not -path './.git/*' | head -1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle не найден. Загрузите в репозиторий файлы проекта (build.gradle, settings.gradle, gradle.properties, папку src)."
+            ls -R
+            exit 1
+          fi
+          echo "PROJECT_DIR=$(dirname "$f")" >> "$GITHUB_ENV"
+
+      - name: Build Keystrokes.jar
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: gradle build --no-daemon
 
       - name: Upload jar as artifact
         uses: actions/upload-artifact@v4
         with:
           name: Keystrokes-jar
-          path: build/libs/Keystrokes.jar
+          path: ${{ env.PROJECT_DIR }}/build/libs/Keystrokes.jar
 
-      # Релиз с готовым jar: его удобно скачать прямо с телефона
-      # (вкладка Releases в репозитории)
+      # Релиз с готовым jar: его удобно скачать с телефона (вкладка Releases)
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: keystrokes-build-${{ github.run_number }}
           name: Keystrokes build ${{ github.run_number }}
-          files: build/libs/Keystrokes.jar
+          files: ${{ env.PROJECT_DIR }}/build/libs/Keystrokes.jar
